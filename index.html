@@ -80,6 +80,23 @@
                     <div id="globalStatsGrid" class="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
                 </div>
             </div>
+
+            <div class="bg-white p-8 rounded-3xl shadow-sm border mb-8">
+                <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Fleet Application Summary</h2>
+                <div class="overflow-hidden rounded-xl border border-slate-200">
+                    <table class="w-full text-left border-collapse">
+                        <tbody id="summaryTableBody" class="divide-y divide-slate-200">
+                            </tbody>
+                        <tfoot class="bg-slate-900 text-white">
+                            <tr>
+                                <td class="p-4 font-black uppercase text-xs">Total Number of Applications</td>
+                                <td id="summaryGrandTotal" class="p-4 font-black text-right text-lg text-blue-400">0</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
             <h2 class="text-xl font-black text-slate-900 mb-6 flex items-center gap-2">
                 <span class="w-2 h-8 bg-blue-600 rounded-full"></span> Fleet Performance Breakdown
             </h2>
@@ -221,14 +238,31 @@
             activeCharts.forEach(c => c.destroy());
             activeCharts = [];
 
+            // 1. Distribution Boxes
             const colors = { RELEASED: 'text-emerald-600', APPLIED: 'text-blue-600', PENDING: 'text-orange-500', ONHOLD: 'text-slate-500', CANCEL: 'text-red-600', REJECTED: 'text-rose-900' };
-            
             document.getElementById('globalStatsGrid').innerHTML = Object.entries(DATA.global).map(([k,v]) => `
                 <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100 text-center">
                     <p class="text-[9px] font-bold text-slate-400 uppercase mb-1">${k}</p>
                     <p class="text-3xl font-black ${colors[k]}">${v}</p>
                 </div>`).join('');
 
+            // 2. Summary Table Injection
+            const summaryTableBody = document.getElementById('summaryTableBody');
+            const summaryOrder = [
+                { label: "NUMBER OF KRBS/BULK APPLICATIONS", key: "KRBS/BULK" },
+                { label: "NUMBER OF KRBS/PCC APPLICATIONS", key: "KRBS/PCC" },
+                { label: "NUMBER OF KMSM/TANKER APPLICATIONS", key: "TANKER" },
+                { label: "NUMBER OF OSS APPLICATIONS", key: "OSS" },
+                { label: "NUMBER OF PRS APPLICATIONS", key: "PRS" }
+            ];
+            
+            summaryTableBody.innerHTML = summaryOrder.map(item => {
+                const count = DATA.records.filter(r => r.f === item.key).length;
+                return `<tr><td class="p-3 text-[11px] font-bold text-slate-600 uppercase">${item.label}</td><td class="p-3 font-black text-right">${count}</td></tr>`;
+            }).join('');
+            document.getElementById('summaryGrandTotal').innerText = DATA.records.length;
+
+            // 3. Donut Chart
             const ctxDonut = document.getElementById('mainDonutChart').getContext('2d');
             activeCharts.push(new Chart(ctxDonut, {
                 type: 'doughnut',
@@ -236,6 +270,7 @@
                 options: { cutout: '85%', plugins: { legend: { display: false } } }
             }));
 
+            // 4. Fleet Bar Charts
             document.getElementById('fleetComparisonGrid').innerHTML = Object.entries(DATA.fleets).map(([name, stats], i) => `
                 <div class="bg-white p-6 rounded-3xl border shadow-sm fleet-card">
                     <div class="flex justify-between items-start mb-4">
